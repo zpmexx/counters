@@ -48,11 +48,11 @@ def subscribe(client: mqtt_client):
             recivedTime, recivedDate = msg.payload.decode().split(" ")
             recivedCode, recivedType = msg.topic.split("/")
             finalList.append([recivedCode,recivedType,recivedDate,recivedTime])
-            if len(finalList) > 9:
+            if len(finalList) > 0:
                 conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
-                         trusted_connection='yes')   
+                        trusted_connection='yes')   
                 cursor = conn.cursor()
-
+                finalList[0][2] = finalList[0][2].replace(".","-")
                 cursor.executemany("""
                 INSERT INTO storage (salon,type,date,time)
                 VALUES (?, ?, ?, ?)
@@ -64,6 +64,9 @@ def subscribe(client: mqtt_client):
                 conn.close()
                 finalList = []
                 print("WGRANO DO BAZY")
+                # except:
+                #     print("Problem z połączeniem z bazą danych...")
+                    
 
     client.subscribe(topicIn)
     client.subscribe(topicOut)
