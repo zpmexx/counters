@@ -48,10 +48,12 @@ def subscribe(client: mqtt_client):
         if i < 0:
             i += 1
         else:
-            # print(client,userdata)
-            # print(f"Otrzymana wiadomość {msg.payload.decode()} od salonu {msg.topic}")
+       
+            print(client,userdata)
+            print(f"Otrzymana wiadomość {msg.payload.decode()} od salonu {msg.topic}")
+            print(msg.payload.decode())
             recivedTime, recivedDate = msg.payload.decode().split(" ")
-            recivedCode, recivedType = msg.topic.split("/")
+            _, recivedCode, recivedType = msg.topic.split("/")
             finalListMain.append([recivedCode,recivedType,recivedDate,recivedTime])
             # print(len(finalListMain))
             if len(finalListMain) > 100:
@@ -107,7 +109,7 @@ def subscribe(client: mqtt_client):
     # client.subscribe(topicIn)
     # client.subscribe(topicOut)
     # client.subscribe('A123/entrance')
-    x = client.subscribe('#')
+    x = client.subscribe('counters/#')
     # client.subscribe('A001/entrance')
     # client.subscribe('A001/exit')
     # client.subscribe('A002/entrance')
@@ -143,20 +145,44 @@ def run():
 
 
 if __name__ == '__main__':
-    try:
-        run()
-    except:
-        conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
-                            trusted_connection='yes')   
-        cursor = conn.cursor()
-        cursor.executemany("""
-                INSERT INTO storage (salon,type,date,time)
-                VALUES (?, ?, ?, ?)
-                """,
-                finalListMain
-                )
-        conn.commit()
-        conn.close()
-        print("essa")
-        print(finalListMain)
-        print(len(finalListMain))
+    if os.stat('test.txt').st_size != 0:
+        firstList = []
+        try:
+            with open ('localdata.txt','r') as file:
+                for line in file.readlines():
+                    splited_line = line.split(",")
+                    splited_line[-1] = splited_line[-1].strip()
+                    firstList.append(splited_line)
+            conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
+            trusted_connection='yes')   
+            cursor = conn.cursor()
+            cursor.executemany("""
+            INSERT INTO storage (salon,type,date,time)
+            VALUES (?, ?, ?, ?)
+            """,
+            firstList
+            )
+            conn.commit()
+            conn.close()
+            print("Wgrano do bazy zaległe pliki, usunięte zawartosć lokalną.")
+            open('localdata.txt', 'w').close()
+            flag = 0
+        except Exception as e:
+            print(e)
+    # try:
+    run()
+    # except:
+    #     conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
+    #                         trusted_connection='yes')   
+    #     cursor = conn.cursor()
+    #     cursor.executemany("""
+    #             INSERT INTO storage (salon,type,date,time)
+    #             VALUES (?, ?, ?, ?)
+    #             """,
+    #             finalListMain
+    #             )
+    #     conn.commit()
+    #     conn.close()
+    #     print("essa")
+    #     print(finalListMain)
+    #     print(len(finalListMain))
