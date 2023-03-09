@@ -37,37 +37,37 @@ global i
 i = 0
 global flag 
 flag = 0
+global finalListMain
+finalListMain = []
 def subscribe(client: mqtt_client):
 
     def on_message(client, userdata, msg):
-        global i
-        global finalList
+        global finalListMain
         global flag
-        if i < 0:
-            i += 1
-        else:
-            # print(client,userdata)
-            # print(f"Otrzymana wiadomość {msg.payload.decode()} od salonu {msg.topic}")
-            recivedTime, recivedDate = msg.payload.decode().split(" ")
-            print(msg.topic)
-            _, recivedCode, recivedType = msg.topic.split("/")
-            print("Otrzymana wiadomośc")
-            print(recivedCode,recivedType,recivedDate,recivedTime)
+    
+        # print(client,userdata)
+        # print(f"Otrzymana wiadomość {msg.payload.decode()} od salonu {msg.topic}")
+        # print(msg.payload.decode())
+        recivedTime, recivedDate = msg.payload.decode().split(" ")
+        _, recivedCode, recivedType = msg.topic.split("/")
+        finalListMain.append([recivedCode,recivedType,recivedDate,recivedTime])
+        # print(len(finalListMain))
+        if len(finalListMain) > 100:
             try:
                 conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
                         trusted_connection='yes')   
                 cursor = conn.cursor()
-                cursor.execute("""
-                INSERT INTO storage (salon,type,date,time)
-                VALUES (?, ?, ?, ?)
-                """,
-                (recivedCode,recivedType,recivedDate,recivedTime)
-                )
+                cursor.executemany("""
+                        INSERT INTO storage (salon,type,date,time)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        finalListMain
+                        )
                 conn.commit()
                 conn.close()
                 finalList = []
-                print("WGRANO DO BAZY")
-                print(recivedCode,recivedType,recivedDate,recivedTime)
+                finalListMain = []
+                # print("WGRANO 100 DO BAZY")
                 if flag == 1:
                     try:
                         with open ('localdata.txt','r') as file:
@@ -94,7 +94,7 @@ def subscribe(client: mqtt_client):
                         flag = 0
                     except Exception as e:
                         print(e)
-          
+        
             except Exception as e:
                 print("Problem z połączeniem z bazą danych...")
                 print(e)
@@ -102,14 +102,7 @@ def subscribe(client: mqtt_client):
                 with open ('localdata.txt', 'a') as file:
                     file.write(f'{recivedCode},{recivedType},{recivedDate},{recivedTime}\n')
                     
-    # client.subscribe(topicIn)
-    # client.subscribe(topicOut)
-    # client.subscribe('A123/entrance')
-    x = client.subscribe('#')
-
-
-
-    # print(x)
+    x = client.subscribe('counters/#')
     client.on_message = on_message
 
 
@@ -120,4 +113,28 @@ def run():
 
 
 if __name__ == '__main__':
+    if os.stat('localdata.txt').st_size != 0:
+        firstList = []
+        try:
+            with open ('localdata.txt','r') as file:
+                for line in file.readlines():
+                    splited_line = line.split(",")
+                    splited_line[-1] = splited_line[-1].strip()
+                    firstList.append(splited_line)
+            conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
+            trusted_connection='yes')   
+            cursor = conn.cursor()
+            cursor.executemany("""
+            INSERT INTO storage (salon,type,date,time)
+            VALUES (?, ?, ?, ?)
+            """,
+            firstList
+            )
+            conn.commit()
+            conn.close()
+            print("Wgrano do bazy zaległe pliki, usunięte zawartosć lokalną.")
+            open('localdata.txt', 'w').close()
+            flag = 0
+        except Exception as e:
+            print(e)
     run()

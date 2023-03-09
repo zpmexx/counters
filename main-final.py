@@ -11,6 +11,10 @@ broker = os.getenv('broker')
 port = int(os.getenv('port'))
 username = os.getenv('usernames')
 password = os.getenv('password')
+
+databaseuserpassword = os.getenv('databaseuserpassword')
+databaseuserlogin = os.getenv('databaseuserlogin')
+
 topicIn = os.getenv('topicIn')
 topicOut = os.getenv('topicOut')
 client_id = os.getenv('client_id')
@@ -37,70 +41,76 @@ global i
 i = 0
 global flag 
 flag = 0
-global finalListMain
 finalListMain = []
 def subscribe(client: mqtt_client):
 
     def on_message(client, userdata, msg):
-        global finalListMain
         global flag
     
         # print(client,userdata)
-        # print(f"Otrzymana wiadomość {msg.payload.decode()} od salonu {msg.topic}")
-        # print(msg.payload.decode())
-        recivedTime, recivedDate = msg.payload.decode().split(" ")
+        print(f"Otrzymana wiadomość")
+        print(msg.payload.decode())
+        print(msg.topic)
+        recivedTime, recivedDate = msg.payload.decode().split("/")
+        recivedDate = recivedDate.strip()
         _, recivedCode, recivedType = msg.topic.split("/")
-        finalListMain.append([recivedCode,recivedType,recivedDate,recivedTime])
+    
+        print("Po podziale na kod, typ, date, czas")
+        print(f'kod: {recivedCode}\ntyp: {recivedType}\ndata: {recivedDate}\nczas: {recivedTime}')
+        #finalListMain.append([recivedCode,recivedType,recivedDate,recivedTime])
         # print(len(finalListMain))
-        if len(finalListMain) > 100:
-            try:
-                conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
-                        trusted_connection='yes')   
-                cursor = conn.cursor()
-                cursor.executemany("""
-                        INSERT INTO storage (salon,type,date,time)
-                        VALUES (?, ?, ?, ?)
-                        """,
-                        finalListMain
-                        )
-                conn.commit()
-                conn.close()
-                finalList = []
-                finalListMain = []
-                # print("WGRANO 100 DO BAZY")
-                if flag == 1:
-                    try:
-                        with open ('localdata.txt','r') as file:
-                            for line in file.readlines():
-                                splited_line = line.split(",")
-                                splited_line[-1] = splited_line[-1].strip()
-                                finalList.append(splited_line)
-                    except Exception as e:
-                        print(e)
-                    try:
-                        conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
-                        trusted_connection='yes')   
-                        cursor = conn.cursor()
-                        cursor.executemany("""
-                        INSERT INTO storage (salon,type,date,time)
-                        VALUES (?, ?, ?, ?)
-                        """,
-                        finalList
-                        )
-                        conn.commit()
-                        conn.close()
-                        print("Wgrano do bazy zaległe pliki, usunięte zawartosć lokalną.")
-                        open('localdata.txt', 'w').close()
-                        flag = 0
-                    except Exception as e:
-                        print(e)
-        
-            except Exception as e:
-                print("Problem z połączeniem z bazą danych...")
-                print(e)
-                flag = 1
-                with open ('localdata.txt', 'a') as file:
-                    file.write(f'{recivedCode},{recivedType},{recivedDate},{recivedTime}\n')
+        try:
+            #conn = pyodbc.connect(DRIVER='/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1', server=sqlserver, database=sqlcounterdatabase,
+             #       trusted_connection='yes')   
+            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+            cursor = conn.cursor()
+            cursor.execute("""
+                    INSERT INTO storage (salon,type,date,time)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (recivedCode,recivedType,recivedDate,recivedTime)
+                    )
+            conn.commit()
+            conn.close()
+            finalList = []
+            print("WGRANO DO BAZY po podziale na kod, typ, data, czas")
+            print(recivedCode,recivedType,recivedDate,recivedTime)
+            if flag == 1:
+                try:
+                    with open ('localdata.txt','r') as file:
+                        for line in file.readlines():
+                            splited_line = line.split(",")
+                            splited_line[-1] = splited_line[-1].strip()
+                            finalList.append(splited_line)
+                except Exception as e:
+                    password
+                    print("problem z otwarciem pliku localdata")
+                    print(e)
+                try:
+                    conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                    cursor = conn.cursor()
+                    cursor.executemany("""
+                    INSERT INTO storage (salon,type,date,time)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    finalList
+                    )
+                    conn.commit()
+                    conn.close()
+                    open('localdata.txt', 'w').close()
+                    print("Wgrano do bazy zaległe pliki, usunięte zawartosć lokalną.")
+                    flag = 0
+                except Exception as e:
+                    print("Problem z wgraniem z pliku localdata")
+                    print(e)
+                    pass
+    
+        except Exception as e:
+            print("Problem z połączeniem z bazą danych...")
+            print(e)
+            flag = 1
+            # with open ('localdata.txt', 'a') as file:
+            #     file.write(f'{recivedCode},{recivedType},{recivedDate},{recivedTime}\n')
                     
     x = client.subscribe('counters/#')
     client.on_message = on_message
@@ -121,8 +131,7 @@ if __name__ == '__main__':
                     splited_line = line.split(",")
                     splited_line[-1] = splited_line[-1].strip()
                     firstList.append(splited_line)
-            conn = pyodbc.connect(driver='SQL Server', server=sqlserver, database=sqlcounterdatabase,
-            trusted_connection='yes')   
+            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             cursor = conn.cursor()
             cursor.executemany("""
             INSERT INTO storage (salon,type,date,time)
@@ -132,7 +141,7 @@ if __name__ == '__main__':
             )
             conn.commit()
             conn.close()
-            print("Wgrano do bazy zaległe pliki, usunięte zawartosć lokalną.")
+            print("Wgrano do bazy zaległe pliki po otwarciu uslugi, usunięte zawartosć lokalną.")
             open('localdata.txt', 'w').close()
             flag = 0
         except Exception as e:
