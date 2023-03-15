@@ -53,11 +53,11 @@ def subscribe(client: mqtt_client):
         print(msg.topic)
         recivedTime, recivedDate = msg.payload.decode().split("/")
         recivedDate = recivedDate.strip()
-        _, recivedCode = msg.topic.split("/")
+        _, recivedCode, recivedType = msg.topic.split("/")
     
-        print("Po podziale na kod, date, czas")
-        print(f'kod: {recivedCode}\ndata: {recivedDate}\nczas: {recivedTime}')
-        #finalListMain.append([recivedCode,recivedDate,recivedTime])
+        print("Po podziale na kod, typ, date, czas")
+        print(f'kod: {recivedCode}\ntyp: {recivedType}\ndata: {recivedDate}\nczas: {recivedTime}')
+        #finalListMain.append([recivedCode,recivedType,recivedDate,recivedTime])
         # print(len(finalListMain))
         try:
             #conn = pyodbc.connect(DRIVER='/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1', server=sqlserver, database=sqlcounterdatabase,
@@ -65,16 +65,16 @@ def subscribe(client: mqtt_client):
             conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             cursor = conn.cursor()
             cursor.execute("""
-                    INSERT INTO storage (salon,date,time)
-                    VALUES (?, ?, ?)
+                    INSERT INTO storage (salon,type,date,time)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (recivedCode,recivedDate,recivedTime)
+                    (recivedCode,recivedType,recivedDate,recivedTime)
                     )
             conn.commit()
             conn.close()
             finalList = []
-            print("WGRANO DO BAZY po podziale na kod, data, czas")
-            print(recivedCode,recivedDate,recivedTime)
+            print("WGRANO DO BAZY po podziale na kod, typ, data, czas")
+            print(recivedCode,recivedType,recivedDate,recivedTime)
             if flag == 1:
                 try:
                     with open ('localdata.txt','r') as file:
@@ -90,8 +90,8 @@ def subscribe(client: mqtt_client):
                     conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
                     cursor = conn.cursor()
                     cursor.executemany("""
-                    INSERT INTO storage (salon,date,time)
-                    VALUES (?, ?, ?)
+                    INSERT INTO storage (salon,type,date,time)
+                    VALUES (?, ?, ?, ?)
                     """,
                     finalList
                     )
@@ -110,7 +110,7 @@ def subscribe(client: mqtt_client):
             print(e)
             flag = 1
             # with open ('localdata.txt', 'a') as file:
-            #     file.write(f'{recivedCode},{recivedDate},{recivedTime}\n')
+            #     file.write(f'{recivedCode},{recivedType},{recivedDate},{recivedTime}\n')
                     
     x = client.subscribe('counters/#')
     client.on_message = on_message
@@ -134,8 +134,8 @@ if __name__ == '__main__':
             conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             cursor = conn.cursor()
             cursor.executemany("""
-            INSERT INTO storage (salon,date,time)
-            VALUES (?, ?, ?)
+            INSERT INTO storage (salon,type,date,time)
+            VALUES (?, ?, ?, ?)
             """,
             firstList
             )
