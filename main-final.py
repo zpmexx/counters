@@ -48,15 +48,19 @@ def subscribe(client: mqtt_client):
         global flag
     
         # print(client,userdata)
-        print(f"Otrzymana wiadomość")
-        print(msg.payload.decode())
-        print(msg.topic)
+        # print(f"Otrzymana wiadomość")
+        # print(msg.payload.decode())
+        # print(msg.topic)
         recivedTime, recivedDate = msg.payload.decode().split("/")
         recivedDate = recivedDate.strip()
         _, recivedCode = msg.topic.split("/")
+
+        #do testow
+        # salonList = ['A500','A069','A100','A122','A154','C043','D068']
+        # recivedCode = random.choice(salonList)
     
-        print("Po podziale na kod, date, czas")
-        print(f'kod: {recivedCode}\ndata: {recivedDate}\nczas: {recivedTime}')
+        # print("Po podziale na kod, date, czas")
+        # print(f'kod: {recivedCode}\ndata: {recivedDate}\nczas: {recivedTime}')
         #finalListMain.append([recivedCode,recivedDate,recivedTime])
         # print(len(finalListMain))
         try:
@@ -73,8 +77,8 @@ def subscribe(client: mqtt_client):
             conn.commit()
             conn.close()
             finalList = []
-            print("WGRANO DO BAZY po podziale na kod, data, czas")
-            print(recivedCode,recivedDate,recivedTime)
+            # print("WGRANO DO BAZY po podziale na kod, data, czas")
+            # print(recivedCode,recivedDate,recivedTime)
             if flag == 1:
                 try:
                     with open ('localdata.txt','r') as file:
@@ -83,7 +87,6 @@ def subscribe(client: mqtt_client):
                             splited_line[-1] = splited_line[-1].strip()
                             finalList.append(splited_line)
                 except Exception as e:
-                    password
                     print("problem z otwarciem pliku localdata")
                     print(e)
                 try:
@@ -109,8 +112,8 @@ def subscribe(client: mqtt_client):
             print("Problem z połączeniem z bazą danych...")
             print(e)
             flag = 1
-            # with open ('localdata.txt', 'a') as file:
-            #     file.write(f'{recivedCode},{recivedDate},{recivedTime}\n')
+            with open ('localdata.txt', 'a') as file:
+                file.write(f'{recivedCode},{recivedDate},{recivedTime}\n')
                     
     x = client.subscribe('counters/#')
     client.on_message = on_message
