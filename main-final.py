@@ -66,7 +66,7 @@ def subscribe(client: mqtt_client):
         try:
             #conn = pyodbc.connect(DRIVER='/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1', server=sqlserver, database=sqlcounterdatabase,
              #       trusted_connection='yes')   
-            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.4.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             cursor = conn.cursor()
             cursor.execute("""
                     INSERT INTO storage (salon,date,time)
@@ -90,7 +90,7 @@ def subscribe(client: mqtt_client):
                     print("problem z otwarciem pliku localdata")
                     print(e)
                 try:
-                    conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                    conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.4.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
                     cursor = conn.cursor()
                     cursor.executemany("""
                     INSERT INTO storage (salon,date,time)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
                     splited_line = line.split(",")
                     splited_line[-1] = splited_line[-1].strip()
                     firstList.append(splited_line)
-            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.4.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             cursor = conn.cursor()
             cursor.executemany("""
             INSERT INTO storage (salon,date,time)
