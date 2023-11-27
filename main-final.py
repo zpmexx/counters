@@ -23,6 +23,12 @@ sqlserver = os.getenv('sqlserver')
 sqlcounterdatabase = os.getenv('sqlcounterdatabase')
 #sqlcountertable = os.getenv('sqlcountertable')
 
+sql_folder_path = os.listdir(path='/opt/microsoft/msodbcsql17/lib64/')
+
+for file in sql_folder_path:
+    if file.startswith("libmsodbcsql"):
+        sql_file = file
+        break
 
 def connect_mqtt() -> mqtt_client:
     def on_connect(client, userdata, flags, rc):
@@ -51,9 +57,18 @@ def subscribe(client: mqtt_client):
         # print(f"Otrzymana wiadomość")
         # print(msg.payload.decode())
         # print(msg.topic)
-        recivedTime, recivedDate = msg.payload.decode().split("/")
-        recivedDate = recivedDate.strip()
-        _, recivedCode = msg.topic.split("/")
+        
+        onlineOfflineList = msg.topic.split("/")
+        
+        
+
+        if len(onlineOfflineList) == 2:
+            recivedTime, recivedDate = msg.payload.decode().split("/")
+            recivedDate = recivedDate.strip()
+            _, recivedCode = msg.topic.split("/")
+            # print(msg.topic)
+            # print(msg.payload.decode())
+
 
         #do testow
         # salonList = ['A500','A069','A100','A122','A154','C043','D068']
@@ -63,58 +78,105 @@ def subscribe(client: mqtt_client):
         # print(f'kod: {recivedCode}\ndata: {recivedDate}\nczas: {recivedTime}')
         #finalListMain.append([recivedCode,recivedDate,recivedTime])
         # print(len(finalListMain))
-        try:
-            #conn = pyodbc.connect(DRIVER='/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1', server=sqlserver, database=sqlcounterdatabase,
-             #       trusted_connection='yes')   
-            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.4.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
-            cursor = conn.cursor()
-            cursor.execute("""
-                    INSERT INTO storage (salon,date,time)
-                    VALUES (?, ?, ?)
-                    """,
-                    (recivedCode,recivedDate,recivedTime)
-                    )
-            conn.commit()
-            conn.close()
-            finalList = []
-            # print("WGRANO DO BAZY po podziale na kod, data, czas")
-            # print(recivedCode,recivedDate,recivedTime)
-            if flag == 1:
-                try:
-                    with open ('localdata.txt','r') as file:
-                        for line in file.readlines():
-                            splited_line = line.split(",")
-                            splited_line[-1] = splited_line[-1].strip()
-                            finalList.append(splited_line)
-                except Exception as e:
-                    print("problem z otwarciem pliku localdata")
-                    print(e)
-                try:
-                    conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.4.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
-                    cursor = conn.cursor()
-                    cursor.executemany("""
-                    INSERT INTO storage (salon,date,time)
-                    VALUES (?, ?, ?)
-                    """,
-                    finalList
-                    )
-                    conn.commit()
-                    conn.close()
-                    open('localdata.txt', 'w').close()
-                    print("Wgrano do bazy zaległe pliki, usunięte zawartosć lokalną.")
-                    flag = 0
-                except Exception as e:
-                    print("Problem z wgraniem z pliku localdata")
-                    print(e)
-                    pass
-    
-        except Exception as e:
-            print("Problem z połączeniem z bazą danych...")
-            print(e)
-            flag = 1
-            with open ('localdata.txt', 'a') as file:
-                file.write(f'{recivedCode},{recivedDate},{recivedTime}\n')
+            try:
+                #conn = pyodbc.connect(DRIVER='/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1', server=sqlserver, database=sqlcounterdatabase,
+                #       trusted_connection='yes')   
+                #conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.5.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/'+sql_file+'};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                cursor = conn.cursor()
+                cursor.execute("""
+                        INSERT INTO storage (salon,date,time,dateFinish,timeFinish,entersCount)
+                        VALUES (?, ?, ?,?,?,?)
+                        """,
+                        (recivedCode,recivedDate,recivedTime,recivedDate,recivedTime,1)
+                        )
+                conn.commit()
+                conn.close()
+                finalList = []
+                # print("WGRANO DO BAZY po podziale na kod, data, czas")
+                # print(recivedCode,recivedDate,recivedTime)
+                if flag == 1:
+                    try:
+                        with open ('localdata.txt','r') as file:
+                            for line in file.readlines():
+                                splited_line = line.split(",")
+                                splited_line[-1] = splited_line[-1].strip()
+                                finalList.append(splited_line)
+                    except Exception as e:
+                        print("problem z otwarciem pliku localdata")
+                        print(e)
+                    try:
+                        #conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.5.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                        conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/'+sql_file+'};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                        cursor = conn.cursor()
+                        cursor.executemany("""
+                        INSERT INTO storage (salon,date,time,dateFinish,timeFinish,entersCount)
+                        VALUES (?, ?, ?,?,?,?)
+                        """,
+                        finalList
+                        )
+                        conn.commit()
+                        conn.close()
+                        open('localdata.txt', 'w').close()
+                        print("Wgrano do bazy zaległe pliki, usunięte zawartosć lokalną.")
+                        flag = 0
+                    except Exception as e:
+                        print("Problem z wgraniem z pliku localdata")
+                        print(e)
+                        pass
+        
+            except Exception as e:
+                print("Problem z połączeniem z bazą danych...")
+                print(e)
+                flag = 1
+                with open ('localdata.txt', 'a') as file:
+                    file.write(f'{recivedCode},{recivedDate},{recivedTime},{recivedDate},{recivedTime},1\n')
                     
+        else: 
+            # print("tu wrzucamy offline")
+            # print("topic")
+            # print(msg.topic)
+            _,_, recivedCode = msg.topic.split("/")
+            # print("wiadomosc")
+            # print(msg.payload.decode())
+            datesEntersList = msg.payload.decode().split(" ")
+            # print("lista po podziale")
+            # print(datesEntersList)
+            entryTime, entryDate = datesEntersList[1].split('/')
+            finishTime, finishDate = datesEntersList[0].split('/')
+            entersCount = datesEntersList[2]
+            entryDate = entryDate.strip()
+            finishDate = finishDate.strip()
+            # print("dane wejsciowe")
+            # print(entryDate,entryTime)
+            # print("dane wyjsciowe")
+            # print(finishDate,finishTime)
+            # print("liczba wejsc")
+            # print(entersCount)
+            try:
+                #conn = pyodbc.connect(DRIVER='/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1', server=sqlserver, database=sqlcounterdatabase,
+                #       trusted_connection='yes')   
+                #conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.5.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/'+sql_file+'};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+                cursor = conn.cursor()
+                cursor.execute("""
+                        INSERT INTO storage (salon,date,time,dateFinish,timeFinish,entersCount)
+                        VALUES (?, ?, ?,?,?,?)
+                        """,
+                        (recivedCode,entryDate,entryTime,finishDate,finishTime,entersCount)
+                        )
+                conn.commit()
+                conn.close()
+                finalList = []
+            except Exception as e:
+                print("Problem z połączeniem z bazą danych...")
+                print(e)
+                #tu wrzucenie do localdaty
+                flag = 1
+                with open ('localdata.txt', 'a') as file:
+                    file.write(f'{recivedCode},{entryDate},{entryTime},{finishDate},{finishTime},{entersCount}\n')
+          
+            
     x = client.subscribe('counters/#')
     client.on_message = on_message
 
@@ -134,11 +196,12 @@ if __name__ == '__main__':
                     splited_line = line.split(",")
                     splited_line[-1] = splited_line[-1].strip()
                     firstList.append(splited_line)
-            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.4.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+            #conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.5.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
+            conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/'+sql_file+'};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             cursor = conn.cursor()
             cursor.executemany("""
-            INSERT INTO storage (salon,date,time)
-            VALUES (?, ?, ?)
+            INSERT INTO storage (salon,date,time,dateFinish,timeFinish,entersCount)
+            VALUES (?, ?, ?,?,?,?)
             """,
             firstList
             )
