@@ -30,18 +30,24 @@ for file in sql_folder_path:
         sql_file = file
         break
 
+if not sql_file:
+    print("Nie można znaleźć pliku sql w mqtt.")
+
 def connect_mqtt() -> mqtt_client:
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
             print("Udane połaczenie!")
         else:
             print("Brak połaczenia, numer błędu: %d\n", rc)
-
-    client = mqtt_client.Client(client_id)
-    client.username_pw_set(username, password)
-    client.on_connect = on_connect
-    client.connect(broker, port)
-    return client
+    try:
+        client = mqtt_client.Client(client_id)
+        client.username_pw_set(username, password)
+        client.on_connect = on_connect
+        client.connect(broker, port)
+        return client
+    except exception as e:
+        print("Problem z połaczeniem z mqtt.")
+        print(e)
 
 global i
 i = 0
@@ -53,19 +59,24 @@ def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
         global flag
     
-        # print(client,userdata)
-        # print(f"Otrzymana wiadomość")
-        # print(msg.payload.decode())
-        # print(msg.topic)
-        
-        onlineOfflineList = msg.topic.split("/")
+
+        try:
+            onlineOfflineList = msg.topic.split("/")
+        except exception as e:
+            print("Problem z podziałem danych przy odbieraniu wiadomsoci (podział przez /). Poniżej otrzymana wiadomość")
+            print(msg.topic)
+            print(e)
         
         
 
         if len(onlineOfflineList) == 2:
-            recivedTime, recivedDate = msg.payload.decode().split("/")
-            recivedDate = recivedDate.strip()
-            _, recivedCode = msg.topic.split("/")
+            try:
+                recivedTime, recivedDate = msg.payload.decode().split("/")
+                recivedDate = recivedDate.strip()
+                _, recivedCode = msg.topic.split("/")
+            except exception as e:
+                print("problem z podziałem danych online")
+                print(e)
             # print(msg.topic)
             # print(msg.payload.decode())
 
@@ -133,26 +144,20 @@ def subscribe(client: mqtt_client):
                     file.write(f'{recivedCode},{recivedDate},{recivedTime},{recivedDate},{recivedTime},1\n')
                     
         else: 
-            # print("tu wrzucamy offline")
-            # print("topic")
-            # print(msg.topic)
-            _,_, recivedCode = msg.topic.split("/")
-            # print("wiadomosc")
-            # print(msg.payload.decode())
-            datesEntersList = msg.payload.decode().split(" ")
-            # print("lista po podziale")
-            # print(datesEntersList)
-            entryTime, entryDate = datesEntersList[1].split('/')
-            finishTime, finishDate = datesEntersList[0].split('/')
-            entersCount = datesEntersList[2]
-            entryDate = entryDate.strip()
-            finishDate = finishDate.strip()
-            # print("dane wejsciowe")
-            # print(entryDate,entryTime)
-            # print("dane wyjsciowe")
-            # print(finishDate,finishTime)
-            # print("liczba wejsc")
-            # print(entersCount)
+            ### print("tu wrzucamy offline")
+            try:
+                _,_, recivedCode = msg.topic.split("/")
+
+                datesEntersList = msg.payload.decode().split(" ")
+                entryTime, entryDate = datesEntersList[1].split('/')
+                finishTime, finishDate = datesEntersList[0].split('/')
+                entersCount = datesEntersList[2]
+                entryDate = entryDate.strip()
+                finishDate = finishDate.strip()
+            except exception as e:
+                print("Problem z podziałem danych online.")
+                print(e)
+                
             try:
                 #conn = pyodbc.connect(DRIVER='/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1', server=sqlserver, database=sqlcounterdatabase,
                 #       trusted_connection='yes')   
@@ -176,15 +181,22 @@ def subscribe(client: mqtt_client):
                 with open ('localdata.txt', 'a') as file:
                     file.write(f'{recivedCode},{entryDate},{entryTime},{finishDate},{finishTime},{entersCount}\n')
           
-            
-    x = client.subscribe('counters/#')
-    client.on_message = on_message
+    try:        
+        x = client.subscribe('counters/#')
+        client.on_message = on_message
+    except exception as e:
+        print("problem z nasluchiwaniem")
+        print(e)
 
 
 def run():
-    client = connect_mqtt()
-    subscribe(client)
-    client.loop_forever()
+    try:
+        client = connect_mqtt()
+        subscribe(client)
+        client.loop_forever()
+    except exception as e:
+        print("problem z nawiazaniem pierwszego polaczenia z mqtt")
+        print(e)
 
 
 if __name__ == '__main__':
