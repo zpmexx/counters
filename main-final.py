@@ -79,11 +79,6 @@ def subscribe(client: mqtt_client):
                 print(e)
             # print(msg.topic)
             # print(msg.payload.decode())
-
-
-        #do testow
-        # salonList = ['A500','A069','A100','A122','A154','C043','D068']
-        # recivedCode = random.choice(salonList)
     
         # print("Po podziale na kod, date, czas")
         # print(f'kod: {recivedCode}\ndata: {recivedDate}\nczas: {recivedTime}')
@@ -117,6 +112,7 @@ def subscribe(client: mqtt_client):
                         print("problem z otwarciem pliku localdata")
                         print(e)
                     try:
+                        #print(finalList)
                         #conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.5.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
                         conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/'+sql_file+'};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
                         cursor = conn.cursor()
@@ -208,6 +204,7 @@ if __name__ == '__main__':
                     splited_line = line.split(",")
                     splited_line[-1] = splited_line[-1].strip()
                     firstList.append(splited_line)
+            #print(firstList)
             #conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.5.1};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             conn = pyodbc.connect('DRIVER={/opt/microsoft/msodbcsql17/lib64/'+sql_file+'};SERVER='+sqlserver+';DATABASE='+sqlcounterdatabase+';UID='+databaseuserlogin+';PWD='+databaseuserpassword)
             cursor = conn.cursor()
